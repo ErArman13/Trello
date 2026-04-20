@@ -1,23 +1,72 @@
-📋 Project Management API (Trello/Jira Clone)
-🚀 Overview
-This is a backend REST API for a project management tool, allowing users to create organizations, invite members, and manage task boards. It features a custom-built authentication system using JSON Web Tokens (JWT) and custom middleware to protect private routes.
+# Project Management API (Trello/Jira Clone)
 
-Note: This project is currently in Phase 1 (Prototype). Data is actively managed in-memory to demonstrate core logic, routing, and authentication flows. It is actively being upgraded to support a persistent database.
+## Overview
 
-✨ Current Features
-User Authentication: Secure signup and login endpoints generating JWTs.
+This is a backend REST API for a project management tool. It supports:
 
-Protected Routes: Custom Express middleware to verify tokens and authorize users.
+- User signup and login with JWT authentication
+- Protected routes via custom authentication middleware
+- Organization creation and member management
+- Board creation under organizations
 
-Workspace Management: Authenticated users can create Organizations and act as the Admin.
+The project is now migrated from in-memory storage to MongoDB using Mongoose.
 
-Role-Based Access: Only Organization Admins can invite new members to their workspace.
+## Tech Stack
 
-💻 Tech Stack
-Environment: Node.js
+- Node.js
+- Express.js
+- MongoDB + Mongoose
+- JWT (`jsonwebtoken`)
+- Password hashing (`bcryptjs`)
+- Environment config (`dotenv`)
 
-Framework: Express.js
+## Setup
 
-Authentication: jsonwebtoken (JWT)
+1. Install dependencies:
 
-Data Storage: In-memory arrays (Temporary - see Roadmap)
+```bash
+npm install
+```
+
+2. Create your environment file:
+
+```bash
+cp .env.example .env
+```
+
+3. Update `.env` values:
+
+```env
+PORT=3000
+MONGODB_URI=mongodb://localhost:27017/trello-clone
+JWT_SECRET=replace_with_a_long_random_secret
+```
+
+4. Start server:
+
+```bash
+npm run start
+```
+
+For development with auto-reload style watch mode:
+
+```bash
+npm run dev
+```
+
+## Main Endpoints
+
+- `POST /signup`
+- `POST /login`
+- `POST /organization` (auth)
+- `POST /add-member` (auth, admin only)
+- `GET /organization?organizationId=<id>` (auth, admin only)
+- `POST /board` (auth, admin only)
+
+## Authentication Header
+
+Send JWT in `Authorization` header:
+
+```text
+Authorization: Bearer <token>
+```
