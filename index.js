@@ -11,6 +11,7 @@ const port = process.env.PORT || 3000;
 const Board = require("./models/Board");
 const Organization = require("./models/Organization");
 const User = require("./models/User");
+const Issue = require("./models/Issue");
 
 app.use(express.json());
 
@@ -72,9 +73,13 @@ app.post("/login", async (req, res) => {
       return res.status(401).json({ err: "username or password is wrong" });
     }
 
-    const token = jwt.sign({ UserId: user._id.toString() }, jwtSecret, {
-      expiresIn: "1d",
-    });
+    const token = jwt.sign(
+      { UserId: user._id.toString() },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "1d",
+      },
+    );
     return res.json({ token });
   } catch (err) {
     return res.status(500).json({ err: "Login failed", details: err.message });
@@ -167,11 +172,9 @@ app.get("/organization", authMiddleware, async (req, res) => {
       .lean();
 
     if (!org) {
-      return res
-        .status(404)
-        .json({
-          mssg: "there is no org present or logged in user is not admin",
-        });
+      return res.status(404).json({
+        mssg: "there is no org present or logged in user is not admin",
+      });
     }
 
     return res.json({ organization: org });
@@ -221,6 +224,56 @@ app.post("/board", authMiddleware, async (req, res) => {
       .json({ err: "Failed to create board", details: err.message });
   }
 });
+
+app.post("/issue", authMiddleware, async (req, res) => {
+  try {
+    const { title, description, boardId } = req.body;
+    const UserId = req.UserId;
+
+    if (!title || !description || !boardId) {
+      return res.status(400).json({ mssg: "required field is not present" });
+    }
+    if (!mongoose.Types.ObjectId.isValid(boardId)) {
+      return res.status(400).json({ mssg: "boardId not valid" });
+    }
+
+    const board = await Board.findById(boardId);
+    if (!board) {
+      return res.status(404).json({ mssg: "no board exist" });
+    }
+
+    const issue = new Issue({
+      title,
+      description,
+      board: boardId,
+    });
+
+    await issue.save();
+    return res.status(201).json({ mssg: "issue created", issueId: issue._id });
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ err: "Failed to create issue", details: error.message });
+  }
+});
+
+app.get('/issues', authMiddleware, async(req,res)=>{
+  try{
+    const boardId = req.query.boardId;
+    const UserId = req.UserId;
+    if (!boardId) {
+      return res.status(400).json({ mssg: "boardId query is required" });
+    }
+    if (!mongoose.Types.ObjectId.isValid(boardId)) {
+      return res.status(400).json({ mssg: "invalid boardId" });
+    }
+    const issue = await Issue.find({board: boardId});
+    return res.json({issue});
+  }
+  catch(error){
+    res.json({mssg: "failed to get issues"});
+  }
+})
 
 async function startServer() {
   try {
