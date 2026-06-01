@@ -12,6 +12,15 @@ const Board = require("./models/Board");
 const Organization = require("./models/Organization");
 const User = require("./models/User");
 const Issue = require("./models/Issue");
+const { 
+  validateRequest, 
+  signupSchema, 
+  loginSchema, 
+  createorgSchema, 
+  addMemberSchema, 
+  addBoardSchema, 
+  addIssueSchema 
+} = require("./validators");
 
 app.use(express.json());
 
@@ -23,16 +32,10 @@ if (!jwtSecret) {
   throw new Error("JWT_SECRET is required in environment variables");
 }
 
-app.post("/signup", async (req, res) => {
+app.post("/signup", validateRequest(signupSchema), async (req, res) => {
   try {
     const { username, password } = req.body;
-    if (!username || !password) {
-      return res
-        .status(400)
-        .json({ message: "username and password are required" });
-    }
-
-    const normalizedUsername = username.toLowerCase().trim();
+    const normalizedUsername = username.toLowerCase();
     const existingUser = await User.findOne({ username: normalizedUsername });
     if (existingUser) {
       return res.status(409).json({ err: "Username already exists" });
@@ -53,15 +56,9 @@ app.post("/signup", async (req, res) => {
   }
 });
 
-app.post("/login", async (req, res) => {
+app.post("/login", validateRequest(loginSchema), async (req, res) => {
   try {
     const { username, password } = req.body;
-    if (!username || !password) {
-      return res
-        .status(400)
-        .json({ err: "username and password are required" });
-    }
-
     const normalizedUsername = username.toLowerCase().trim();
     const user = await User.findOne({ username: normalizedUsername });
     if (!user) {
@@ -86,13 +83,9 @@ app.post("/login", async (req, res) => {
   }
 });
 
-app.post("/organization", authMiddleware, async (req, res) => {
+app.post("/organization",authMiddleware, validateRequest(createorgSchema),  async (req, res) => {
   const { title, description } = req.body;
   const UserId = req.UserId;
-
-  if (!title || !description) {
-    return res.status(400).json({ mssg: "title and description are required" });
-  }
 
   const NewOrg = new Organization({
     title,
@@ -108,21 +101,10 @@ app.post("/organization", authMiddleware, async (req, res) => {
   });
 });
 
-app.post("/add-member", authMiddleware, async (req, res) => {
+app.post("/add-member",authMiddleware, validateRequest(addMemberSchema), async (req, res) => {
   try {
     const { organizationId, memberUserName } = req.body;
     const UserId = req.UserId;
-
-    if (!organizationId || !memberUserName) {
-      return res
-        .status(400)
-        .json({ mssg: "organizationId and memberUserName are required" });
-    }
-
-    if (!mongoose.Types.ObjectId.isValid(organizationId)) {
-      return res.status(400).json({ mssg: "invalid organizationId" });
-    }
-
     const organization = await Organization.findOne({
       _id: organizationId,
       admin: UserId,
@@ -185,18 +167,10 @@ app.get("/organization", authMiddleware, async (req, res) => {
   }
 });
 
-app.post("/board", authMiddleware, async (req, res) => {
+app.post("/board",authMiddleware, validateRequest(addBoardSchema),  async (req, res) => {
   try {
     const { title, organizationId } = req.body;
     const UserId = req.UserId;
-
-    if (!title || !organizationId) {
-      return res.status(400).json({ mssg: "required fields are not present" });
-    }
-
-    if (!mongoose.Types.ObjectId.isValid(organizationId)) {
-      return res.status(400).json({ mssg: "invalid organizationId" });
-    }
 
     const organization = await Organization.findOne({
       _id: organizationId,
@@ -225,17 +199,10 @@ app.post("/board", authMiddleware, async (req, res) => {
   }
 });
 
-app.post("/issue", authMiddleware, async (req, res) => {
+app.post("/issue",authMiddleware, validateRequest(addIssueSchema), async (req, res) => {
   try {
     const { title, description, boardId } = req.body;
     const UserId = req.UserId;
-
-    if (!title || !description || !boardId) {
-      return res.status(400).json({ mssg: "required field is not present" });
-    }
-    if (!mongoose.Types.ObjectId.isValid(boardId)) {
-      return res.status(400).json({ mssg: "boardId not valid" });
-    }
 
     const board = await Board.findById(boardId);
     if (!board) {
